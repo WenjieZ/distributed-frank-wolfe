@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 import numpy as np
 
-def lowrank(m, n, r, nn = 1):
-    W = np.random.randn(m,n)
-    U, s, V = np.linalg.svd(W, full_matrices = False)
-    s[r:] = 0
-    s = s / sum(s) * nn
-    S = np.diag(s)
-    W = U.dot(S).dot(V)
+def lowrank(m, n, r, nn = 1, dense = True):
+    if dense:
+        W = np.random.randn(m,n)
+        U, s, V = np.linalg.svd(W, full_matrices = False)
+        s[r:] = 0
+        s = s / sum(s) * nn
+        S = np.diag(s)
+        W = U.dot(S).dot(V)
+    else:
+        pass # to be filled
     return W
 
 def mat2point(X, *Y):
