@@ -1,109 +1,97 @@
 #!/usr/bin/env python3
 import numpy as np
-from utils import firstSVD
+from utils import *
 
-def row_data(z):
-    return dict([('X',z[0]), ('Y',z[1]), ('n',z[1].shape[0]),
-                 ('m',z[1].shape[1]), ('p',z[0].shape[1])])
-
-def row_param(z):
-    z['t'] = 0
-    z['W'] = np.zeros((z['p'], z['m']))
-    return z
-
+# lmo
 def add(x, y):
     return x + y
-	
+
 def loground(t, c = 1):
     return 1 + np.int(c * np.log10(.99 + t))
 
-def gradient(rdd, model):
-    def row_gradient(z):
-        z['grad'] = model.gradient(z['X'], z['Y'], z['W'])
-        return z
-    return rdd.map(row_gradient).setName("withGradient").cache()
-
-def centralize(rdd, svd = firstSVD, **kwargs):
-    grad = rdd.map(lambda z: z['grad']).reduce(add)
+def centralize(rdd, svd = viaSVD, **kwargs):
+    grad = rdd.map(lambda z: z['grad']).setName("grad").reduce(add)
     return svd(grad)
 
-def warmstart(rdd, svd = firstSVD, **kwargs):
-    def row_svd(z):
-        z['u'], z['v'] = svd(z['grad'])
-        return z
-    return rdd.map(row_svd)
+def warmstart(rdd, svd = viaSVD, **kwargs):
+    return rdd.map(lambda z: svd(z['grad'])).setName("u,v")
 
 def avgmix(rdd, **kwargs):
-    rdd = warmstart(rdd).map(lambda z: (z['u'], z['v']))
-    return rdd.reduce(lambda x, y: (x[0] + y[0], x[1] + y[1]))
+    return warmstart(rdd).reduce(lambda x, y: (x[0] + y[0], x[1] + y[1]))
 
-def poweriter(rdd, max_iter, v = None, t = 0):
+def poweriter(rdd, max_iter, v = None, t = 0, **kwargs):
     if v is None:
-        v = warmstart(rdd).map(lambda z: z['v']).reduce(add)
-        
-    for _ in range(max_iter(t)):
+        v = warmstart(rdd).map(lambda z: z[1]).reduce(add)
+    elif v == "random":
+        v = np.random.randn(kwargs['m'])
+    #print("poweriter: ", v[0])
+
+    k = max_iter(t)
+    for _ in range(int(k)):
+        u = rdd.map(lambda z: np.dot(z['grad'], v)).setName("v").reduce(add)
+        u /= np.linalg.norm(u)
+        v = rdd.map(lambda z: np.dot(u, z['grad'])).setName("u").reduce(add)
+        v /= np.linalg.norm(v)
+    if k > int(k):
         u = rdd.map(lambda z: np.dot(z['grad'], v)).reduce(add)
         u /= np.linalg.norm(u)
-        v = rdd.map(lambda z: np.dot(u, z['grad'])).reduce(add)
-        v /= np.linalg.norm(v)
     return u, v
-    
+
 def regularize(u, v, nn):
-	u /= np.linalg.norm(u)
-	v /= np.linalg.norm(v)
-	u *= -nn
-	return u, v	
-    
-def broadcast(rdd, u, v):
-    def row_dest(z):
-        z['D'] = np.outer(u, v)
-        return z
-    return rdd.map(row_dest).setName("withDest").cache()
-    
-def naivestep(rdd, *args, **kwargs):
-    def row_step(z):
-        z['a'] = 2. / (z['t'] + 2)
-        return z
-    return rdd.map(row_step), None
-    
-def linearsearch(rdd, model):
-    a = rdd.map(lambda z: model.linesearch(z['X'], z['Y'], z['W'], z['D'], z['grad'])).reduce(add)
-    a = a[0] / a[1]
+    u /= np.linalg.norm(u)
+    v /= np.linalg.norm(v)
+    u *= -nn
+    return u, v
 
-    def row_step(z):
-        z['a'] = a
-        return z
+# ls
+def naivestep(*args, t, **kwargs):
+    return 2./ (t + 2)
 
-    return rdd.map(row_step), a
+def linesearch(*args, rdd, u, v, ls, **kwargs):
+    a = rdd.map(lambda z: ls(**z, D = LRmatrix([1], [u], [v]))).reduce(add)
+    return min(a[0] / a[1], 1)
 
-def descent(rdd):
-    def row_descent(z):
-        z['W'], z['D'] = (1 - z['a']) * z['W'] + z['a'] * z['D'], z['W']
-        z['t'] += 1
-        return z
-    return rdd.map(row_descent)
+def fixedstep(*args, const, **kwargs):
+    return const
 
-def ascent(rdd):
-    def row_ascent(z):
-        z['W'], z['D'] = z['D'], (z['W'] - (1 - z['a']) * z['D']) / z['a']
-        z['t'] -= 1
-        return z
-    return rdd.map(row_ascent)
-	
-def loss(rdd, model):
-    return rdd.map(lambda z: model.loss(z['X'], z['Y'], z['W'])).reduce(add)
+# update
+def update(rdd, u, v, a, f):
+    return rdd.map(lambda z: f(z, LRmatrix([1], [u], [v]), a))
 
-def miss(rdd, model):
-    return rdd.map(lambda z: model.miss(z['X'], z['Y'], z['W'])).reduce(add)
+if __name__ == '__main__':
+    from pyspark import SparkContext
+    sc = SparkContext("local", "Test fw.py")
+    import mls as md
+    # X: n*p  W: p*m  Y: n*m
+    # =======================
 
-def iterate(rdd, model, lmo, stepsize, nn, t, cl = True, cm = True):
-	rdd = gradient(rdd, model)
-	u, v = lmo(rdd, t=t)
-	u, v = regularize(u, v, nn)
-	rdd = broadcast(rdd, u, v)
-	rdd, ss = stepsize(rdd, model)
-	rdd = descent(rdd)
-	ls = loss(rdd, model) if cl else None
-	ms = miss(rdd, model) if cm else None
-	return rdd, (u, v), ss, ls, ms
+    # default parameters
+    param = {'n':16, 'm':5, 'p':4, 'r':3, 'nn':1, 'seed':0}
 
+    # generate data
+    data, W = md.generate(**param)
+
+    # prepare data
+    points = mat2point(*data)
+    dataRDD = sc.parallelize(points, 8).mapPartitions(point2mat)
+    assert dataRDD.count() == 8
+    statRDD = dataRDD.map(md.stats).cache()
+    assert statRDD.count() == 8
+
+    # lmo
+    assert np.isclose(prod(centralize(statRDD)), 7.186559722e-06)
+    assert np.isclose(prod(avgmix(statRDD)), 275.7011134)
+    assert np.isclose(prod(poweriter(statRDD, lambda t: 3)), 2.863723520e-06)
+    u, v = regularize(*centralize(statRDD), 1)
+    assert np.isclose(prod((u, v)), 2.852219061e-06)
+
+    # ls
+    assert np.isclose(naivestep(t = 2), 0.5)
+    a = linesearch(rdd = statRDD, u = u, v = v, ls = md.linesearch)
+    assert np.isclose(a, 0.3897265)
+
+    # update
+    statRDD = update(statRDD, u, v, a, md.update)
+    assert np.isclose(prod(centralize(statRDD)), -0.00195662557)
+
+    print('Test: fw.py...OK')
