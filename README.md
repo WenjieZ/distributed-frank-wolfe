@@ -1,4 +1,4 @@
-# distributed-frank-wolfe
+# Distributed Frank-Wolfe Framework for Trace Norm Minimization
 This repository accompanies my working paper 
 
 - A Distributed Frank-Wolfe Framework for Learning Low-Rank Matrices with the Trace Norm
