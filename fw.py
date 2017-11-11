@@ -82,14 +82,19 @@ def ascent(paramRDD):
 def loss(paramRDD, modelRDD):
 	rdd = modelRDD.join(paramRDD).values()
 	return rdd.map(lambda x: x[0].loss(x[1].W)).reduce(add)
+	
+def miss(paramRDD, modelRDD):
+	rdd = modelRDD.join(paramRDD).values()
+	return rdd.map(lambda x: x[0].miss(x[1].W)).reduce(add)
 
-def iterate(model, param, lmo, stepsize, nn, t, cal_loss = True):
-	grad = gradient(param, model).cache()
+def iterate(model, param, lmo, stepsize, nn, t, cl = True, cm = True):
+	grad = gradient(param, model)
 	u, v = lmo(grad, t)
 	u, v = regularize(u, v, nn)
 	param = broadcast(param, u, v)
 	param, ss = stepsize(param, model, grad)
 	param = descent(param)
-	ls = loss(param, model) if cal_loss else None
-	return param, (u, v), ss, ls
+	ls = loss(param, model) if cl else None
+	ms = miss(param, model) if cm else None
+	return param, (u, v), ss, ls, ms
 

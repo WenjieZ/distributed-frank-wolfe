@@ -13,7 +13,7 @@ def lowrank(m, n, r, nn = 1):
 def mat2point(X, *Y):
     return [(x, *y) for x, *y in zip(X, *Y)]
 
-def point2mat(points):
+def point2mat(points): 
     points = list(points)
     mat = [np.array(x) for x in points[0]]
     for p in points[1:]:
