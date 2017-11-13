@@ -6,14 +6,14 @@ from utils import *
 def add(x, y):
     return x + y
 
-def loground(t, c = 1):
+def loground(t, c = 0.5):
     return 1 + np.int(c * np.log10(.99 + t))
 
-def centralize(rdd, svd = viaSVD, **kwargs):
+def centralize(rdd, svd = firstSVD, **kwargs):
     grad = rdd.map(lambda z: z['grad']).setName("grad").reduce(add)
     return svd(grad)
 
-def warmstart(rdd, svd = viaSVD, **kwargs):
+def warmstart(rdd, svd = firstSVD, **kwargs):
     return rdd.map(lambda z: svd(z['grad'])).setName("u,v")
 
 def avgmix(rdd, **kwargs):
@@ -47,8 +47,10 @@ def regularize(u, v, nn):
 def naivestep(*args, t, **kwargs):
     return 2./ (t + 2)
 
-def linesearch(*args, rdd, u, v, ls, **kwargs):
-    a = rdd.map(lambda z: ls(**z, D = LRmatrix([1], [u], [v]))).reduce(add)
+def linesearch(*args, rdd, u = None, v = None, ls = None, D = None, **kwargs):
+    if D is None:
+        D = LRmatrix([1], [u], [v])
+    a = rdd.map(lambda z: ls(**z, D = D)).reduce(add)
     return min(a[0] / a[1], 1)
 
 def fixedstep(*args, const, **kwargs):

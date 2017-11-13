@@ -124,7 +124,7 @@ def apogee(x):
     return a if abs(a) > b else b
 
 def firstSVD(A, seed = 0):
-    np.random.seed(seed)
+    #np.random.seed(seed)
     m,n = np.shape(A)
     v = np.random.randn(n)
     for _ in range(20):
