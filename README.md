@@ -8,7 +8,7 @@ as well as my PhD dissertation
 - A Distributed Frank-Wolfe Framework for Trace Norm Minimization
 
 ## Difference between these two works
-- My working paper focuses on matrices in *general space*. My dissertation studies *general matrices*, *symmetric matrices* and *positive semidefinite matrices*.
+- My working paper focuses on matrices in the *general space*. My dissertation studies *general matrices*, *symmetric matrices* and *positive semidefinite matrices*.
 
 - My disseration includes only the slow convergence rate. My working paper quantifies also the fast convergence rate when hypotheses cound be made on the distribution of the singular values.
 

@@ -29,7 +29,7 @@ def solve(oDataRDD, metadata, md, nn, T, lmo, step):
     np.random.seed(1)
     for t in range(T):
         u, v = fw.regularize(*lmo(statRDD, m = m, t = t), nn)
-        a = step(rdd = statRDD, u = u, v = v, t = t, const = 0.01, ls = md.linesearch)
+        a = step(rdd = statRDD, u = u, v = v, t = t, ls = md.linesearch)
         U.append(u)
         V.append(v)
         A = np.append(A, a)

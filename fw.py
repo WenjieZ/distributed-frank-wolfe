@@ -53,7 +53,7 @@ def linesearch(*args, rdd, u = None, v = None, ls = None, D = None, **kwargs):
     a = rdd.map(lambda z: ls(**z, D = D)).reduce(add)
     return min(a[0] / a[1], 1)
 
-def fixedstep(*args, const, **kwargs):
+def fixedstep(*args, const = 0.01, **kwargs):
     return const
 
 # update
