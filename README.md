@@ -21,7 +21,7 @@ as well as my PhD dissertation
 The package is composed of the front end and the back end. The front end implements high level functions, which allows the users to run the distributed Frank-Wolfe algorithms without caring about the detail. The back end implements various low level functions about every aspect of Frank-Wolfe.
 
 ### Front end
-The front end (`fondend.py` has two functions: `solve` and `evaluate`. The former solves a minimization problem, as the name indicates. It returns a `FWpath` object, which stores the solution path. The latter takes a dataset and a `FWpath` object to evaluate the fitness of the result.
+The front end (`fondend.py`) has two functions: `solve` and `evaluate`. The former solves a minimization problem, as the name indicates. It returns a `FWpath` object, which stores the solution path. The latter takes a dataset and a `FWpath` object to evaluate the fitness of the result.
 
 ### Back end
 The back end is the base of the framework. It is composed of two parts: the Frank-Wolfe stratgy part, which is generic, and the model part, which is not generic.
