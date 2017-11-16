@@ -24,9 +24,9 @@ The package is composed of the front end and the back end. The front end impleme
 The front end (`frontend.py`) has two functions: `solve` and `evaluate`. The former solves a minimization problem, as the name indicates. It returns a `FWpath` object, which stores the solution path. The latter takes a dataset and a `FWpath` object to evaluate the fitness of the result.
 
 ### Back end
-The back end is the base of the framework. It is composed of two parts: the Frank-Wolfe stratgy part, which is generic, and the model part, which is not generic.
+The back end is the base of the framework. It is composed of two parts: the Frank-Wolfe strategy part, which is generic, and the model part, which is not generic.
 
-We currently have implemented two models: **multitask least square** (`mls`) and **multinomial Logistic regression** (`mlr`). Each model is implemented in a separated file (e.g., `mls.py`, `mlr.py`) and follows a certain API, the most important functions of which are `stats` and `update`. The model part is written in pure Python. Users can implement their own models without any prior distributed computing knowledge.
+We currently have implemented two models: **multitask least square** (`mls`) and **multinomial Logistic regression** (`mlr`). Each model is implemented in a separated file (e.g., `mls.py`, `mlr.py`) and follows a certain API, among which the most important functions are `stats` and `update`. The model part is written in pure Python. Users can implement their own models without any prior distributed computing knowledge.
 
 The strategy part (`fw.py`) implements the 4 distributed strategies solving the linear subproblem as well as various step size defining devices. This part is written in PySpark, SPARK's Python API.
 
