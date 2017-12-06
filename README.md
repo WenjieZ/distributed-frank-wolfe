@@ -1,21 +1,6 @@
 # Distributed Frank-Wolfe Framework for Trace Norm Minimization
-This repository accompanies my working paper 
 
-- A Distributed Frank-Wolfe Framework for Learning Low-Rank Matrices with the Trace Norm
-
-as well as my PhD dissertation
-
-- A Distributed Frank-Wolfe Framework for Trace Norm Minimization
-
-**Difference between these two works**
-- My working paper focuses on matrices in the *general space*. My dissertation studies *general matrices*, *symmetric matrices* and *positive semidefinite matrices*.
-
-- My disseration includes only the slow convergence rate. My working paper quantifies also the fast convergence rate when hypotheses cound be made on the distribution of the singular values.
-
-- My working paper describes only the dense representation. My disseration discusses also the low-rank representation.
-
-- My working paper provides a coarse-grained analysis of the elapsed time. My dissertation provides a fine-grained one.
-
+This package solves *trace norm minimization* in a distributed way. It is written in Python and works on clusters deployed with Aparch SPARK.
 
 ## Structure
 The package is composed of the front end and the back end. The front end implements high level functions, which allows the users to run the distributed Frank-Wolfe algorithms without caring about the detail. The back end implements various low level functions about every aspect of Frank-Wolfe.
@@ -30,17 +15,66 @@ We currently have implemented two models: **multitask least square** (`mls`) and
 
 The strategy part (`fw.py`) implements the 4 distributed strategies solving the linear subproblem as well as various step size defining devices. This part is written in PySpark, SPARK's Python API.
 
-## Usage
+## Basic usage
+The typical workflow is:
+
 1. Open a PySpark terminal or a PySpark notebook
-
-2. Prepare your own RDD
-
+2. Prepare your own RDD, and `from frontend import solve, evaluate'
 3. Feed your RDD to the `solve` function, as well as provide necessary parameters
-
 4. Evaluate your result with `evaluate` function.
 
-The workflow works either on a cluster or a PC. For users with difficulties to install SPARK, I recommend my [Park](https://github.com/WenjieZ/Park) package. It allows to develop and/or test basic Spark code on a single PC without SPARK installed.
+The `solve` function takes as input 
+- data RDD, 
+- metadata dictionary containing the dimension of the input matrices (i.e., n, m, p)
+- model (either mls or mlr, should be imported)
+- hyperparameter characterising the intended trace norm
+- number of epochs
+- linear minimization oracle
+- step size oracle
+
+Linear minimization oracle candidates:
+```python
+fw.centralize                                                             # centralize
+fw.avgmix                                                                 # singular vectors mixture
+lambda rdd, **kwargs: fw.poweriter(rdd, lambda t: 1, 'random', **kwargs)  # power1
+lambda rdd, **kwargs: fw.poweriter(rdd, lambda t: 2, 'random', **kwargs)  # power2
+lambda rdd, **kwargs: fw.poweriter(rdd, lambda t: 1, **kwargs)            # power1 with warm start
+lambda rdd, **kwargs: fw.poweriter(rdd, lambda t: 2, **kwargs)            # power2 with warm start
+lambda rdd, **kwargs: fw.poweriter(rdd, lambda t: fw.loground(t, c=1), 'random', **kwargs)  # powlog
+```
+
+Step size oracle candidates:
+```python
+fw.linesearch
+fw.naivestep                                     # 2 / (t+2)
+lambda **kwargs: fw.fixedstep(const=0.01)        # fixed step size
+```
+The `evaluate` function takes as input
+- test data RDD,
+- solution path yield from `solve`
+- metadata dictionary containing the dimension of the input matrices (i.e., n, m, p)
+- model (either mls or mlr, should be imported)
+- (optional) ground truth matrix
+For the mls model, it outputs the objective function value and, if provided with the ground truth, estimation error. For the mlr model, it outputs the objective function value and the top-5 misclassification rate.
+
+This workflow works either on a cluster or a PC. For users with difficulties to install SPARK, I recommend my [Park](https://github.com/WenjieZ/Park) package. It allows to develop and/or test basic Spark code on a single PC without SPARK installed.
 
 ## Demo
 Two demos are provided, in both notebook format and HTML format.
+
+## Reference
+This repository accompanies my working paper 
+
+- A Distributed Frank-Wolfe Framework for Learning Low-Rank Matrices with the Trace Norm
+
+as well as my PhD dissertation
+
+- A Distributed Frank-Wolfe Framework for Trace Norm Minimization
+
+**Difference between these two works**
+- My working paper focuses on matrices in the *general space*, whereas my dissertation studies *general matrices*, *symmetric matrices* and *positive semidefinite matrices*.
+- My disseration includes only the slow convergence rate, whereas my working paper quantifies also the fast convergence rate when hypotheses cound be made on the distribution of the singular values.
+- My working paper presents only the convergence in expectation, whereas my dissertation presents also the convergence in probability.
+- My working paper describes only the dense representation, whereas yy dissertation discusses also the low-rank representation.
+- My working paper provides a coarse-grained analysis of the elapsed time, whereas my dissertation provides a fine-grained one.
 
