@@ -55,6 +55,7 @@ The `evaluate` function takes as input
 - metadata dictionary containing the dimension of the input matrices (i.e., n, m, p)
 - model (either mls or mlr, should be imported)
 - (optional) ground truth matrix
+
 For the mls model, it outputs the objective function value and, if provided with the ground truth, estimation error. For the mlr model, it outputs the objective function value and the top-5 misclassification rate.
 
 This workflow works either on a cluster or a PC. For users with difficulties to install SPARK, I recommend my [Park](https://github.com/WenjieZ/Park) package. It allows to develop and/or test basic Spark code on a single PC without SPARK installed.
