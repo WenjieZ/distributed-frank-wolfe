@@ -3,7 +3,7 @@
 This package solves *trace norm minimization* in a distributed way. It is written in Python and works on clusters deployed with Apache SPARK.
 
 ## Dependency
-Use Python3.5 for the wildest compatibility with Apache SPARK. Other versions of Python may not be supported.
+Use Python3.5 for the widest compatibility with Apache SPARK. Other versions of Python may not be supported.
 
 ## Structure
 The package is composed of the front end and the back end. The front end implements high-level functions, which allows the users to run the distributed Frank-Wolfe algorithms without caring about the detail. The back end implements various low-level functions about every aspect of Frank-Wolfe.
